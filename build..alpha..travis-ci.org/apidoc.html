@@ -1,0 +1,269 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://github.com/baalexander/node-portscanner"
+
+    >portscanner (v2.1.1)</a>
+</h1>
+<h4>Asynchronous port scanner for Node.js</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.portscanner">module portscanner</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.portscanner.checkPortStatus">
+            function <span class="apidocSignatureSpan">portscanner.</span>checkPortStatus
+            <span class="apidocSignatureSpan">(port)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.portscanner.findAPortInUse">
+            function <span class="apidocSignatureSpan">portscanner.</span>findAPortInUse
+            <span class="apidocSignatureSpan">()</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.portscanner.findAPortNotInUse">
+            function <span class="apidocSignatureSpan">portscanner.</span>findAPortNotInUse
+            <span class="apidocSignatureSpan">()</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.portscanner" id="apidoc.module.portscanner">module portscanner</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.portscanner.checkPortStatus" id="apidoc.element.portscanner.checkPortStatus">
+        function <span class="apidocSignatureSpan">portscanner.</span>checkPortStatus
+        <span class="apidocSignatureSpan">(port)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function checkPortStatus(port) {
+  var args, host, opts, callback
+
+  args = [].slice.call(arguments, 1)
+
+  if (typeof args[0] === &#x27;string&#x27;) {
+    host = args[0]
+  } else if (typeof args[0] === &#x27;object&#x27;) {
+    opts = args[0]
+  } else if (typeof args[0] === &#x27;function&#x27;) {
+    callback = args[0]
+  }
+
+  if (typeof args[1] === &#x27;object&#x27;) {
+    opts = args[1]
+  } else if (typeof args[1] === &#x27;function&#x27;) {
+    callback = args[1]
+  }
+
+  if (typeof args[2] === &#x27;function&#x27;) {
+    callback = args[2]
+  }
+
+  if (!callback) return promisify(checkPortStatus, arguments)
+
+  opts = opts || {}
+
+  host = host || opts.host || &#x27;127.0.0.1&#x27;
+
+  var timeout = opts.timeout || 400
+  var connectionRefused = false
+
+  var socket = new Socket()
+  var status = null
+  var error = null
+
+  // Socket connection established, port is open
+  socket.on(&#x27;connect&#x27;, function () {
+    status = &#x27;open&#x27;
+    socket.destroy()
+  })
+
+  // If no response, assume port is not listening
+  socket.setTimeout(timeout)
+  socket.on(&#x27;timeout&#x27;, function () {
+    status = &#x27;closed&#x27;
+    error = new Error(&#x27;Timeout (&#x27; + timeout + &#x27;ms) occurred waiting for &#x27; + host + &#x27;:&#x27; + port + &#x27; to be available&#x27;)
+    socket.destroy()
+  })
+
+  // Assuming the port is not open if an error. May need to refine based on
+  // exception
+  socket.on(&#x27;error&#x27;, function (exception) {
+    if (exception.code !== &#x27;ECONNREFUSED&#x27;) {
+      error = exception
+    } else {
+      connectionRefused = true
+    }
+    status = &#x27;closed&#x27;
+  })
+
+  // Return after the socket has closed
+  socket.on(&#x27;close&#x27;, function (exception) {
+    if (exception &#x26;&#x26; !connectionRefused) { error = error || exception } else { error = null }
+    callback(error, status)
+  })
+
+  socket.connect(port, host)
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+A brief example:
+
+```javascript
+var portscanner = require(&#x27;portscanner&#x27;)
+
+// Checks the status of a single port
+portscanner.<span class="apidocCodeKeywordSpan">checkPortStatus</span>(3000, &#x27;127.0.0.1&#x27;, function(error, status) {
+  // Status is &#x27;open&#x27; if currently in use or &#x27;closed&#x27; if available
+  console.log(status)
+})
+
+// Find the first available port. Asynchronously checks, so first port
+// determined as available is returned.
+portscanner.findAPortNotInUse(3000, 3010, &#x27;127.0.0.1&#x27;, function(error, port) {
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.portscanner.findAPortInUse" id="apidoc.element.portscanner.findAPortInUse">
+        function <span class="apidocSignatureSpan">portscanner.</span>findAPortInUse
+        <span class="apidocSignatureSpan">()</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function findAPortInUse() {
+  var params = [].slice.call(arguments)
+  params.unshift(&#x27;open&#x27;)
+  return findAPortWithStatus.apply(null, params)
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+// determined as available is returned.
+portscanner.findAPortNotInUse(3000, 3010, &#x27;127.0.0.1&#x27;, function(error, port) {
+  console.log(&#x27;AVAILABLE PORT AT: &#x27; + port)
+})
+
+// Find the first port in use or blocked. Asynchronously checks, so first port
+// to respond is returned.
+portscanner.<span class="apidocCodeKeywordSpan">findAPortInUse</span>(3000, 3010, &#x27;127.0.0.1&#x27;, function(error, port) {
+  console.log(&#x27;PORT IN USE AT: &#x27; + port)
+})
+
+// You can also pass array of ports to check
+portscanner.findAPortInUse([3000, 3005, 3006], &#x27;127.0.0.1&#x27;, function(error, port) {
+  console.log(&#x27;PORT IN USE AT: &#x27; + port)
+})
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.portscanner.findAPortNotInUse" id="apidoc.element.portscanner.findAPortNotInUse">
+        function <span class="apidocSignatureSpan">portscanner.</span>findAPortNotInUse
+        <span class="apidocSignatureSpan">()</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function findAPortNotInUse() {
+  var params = [].slice.call(arguments)
+  params.unshift(&#x27;closed&#x27;)
+  return findAPortWithStatus.apply(null, params)
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+portscanner.checkPortStatus(3000, &#x27;127.0.0.1&#x27;, function(error, status) {
+// Status is &#x27;open&#x27; if currently in use or &#x27;closed&#x27; if available
+console.log(status)
+})
+
+// Find the first available port. Asynchronously checks, so first port
+// determined as available is returned.
+portscanner.<span class="apidocCodeKeywordSpan">findAPortNotInUse</span>(3000, 3010, &#x27;127.0.0.1&#x27;, function(error, port
+) {
+console.log(&#x27;AVAILABLE PORT AT: &#x27; + port)
+})
+
+// Find the first port in use or blocked. Asynchronously checks, so first port
+// to respond is returned.
+portscanner.findAPortInUse(3000, 3010, &#x27;127.0.0.1&#x27;, function(error, port) {
+console.log(&#x27;PORT IN USE AT: &#x27; + port)
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
